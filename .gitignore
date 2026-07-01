@@ -1,0 +1,9 @@
+.venv/
+.env
+models/
+results/
+data/raw/
+data/processed/
+wandb/
+__pycache__/
+*.pyc
