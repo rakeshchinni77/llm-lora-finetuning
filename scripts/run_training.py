@@ -266,7 +266,6 @@ def build_trainer(
         max_seq_length=int(train_config["max_seq_length"]),
         peft_config=None,
         packing=False,
-        remove_unused_columns=False,
     )
 
 
