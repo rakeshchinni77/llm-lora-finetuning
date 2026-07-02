@@ -275,6 +275,17 @@ def train_model() -> None:
     configure_huggingface_and_wandb(env)
 
     train_config, lora_config, train_dataset, eval_dataset = load_training_assets()
+
+    DEVELOPMENT_MODE = True
+    if DEVELOPMENT_MODE:
+        train_dataset = train_dataset.select(range(min(1000, len(train_dataset))))
+        eval_dataset = eval_dataset.select(range(min(100, len(eval_dataset))))
+        LOGGER.info(
+            "Development mode enabled: reduced train dataset to %s and eval dataset to %s",
+            len(train_dataset),
+            len(eval_dataset),
+        )
+
     set_seed(int(train_config["seed"]))
 
     model_id = env["BASE_MODEL_ID"]
