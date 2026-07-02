@@ -60,7 +60,16 @@ def configure_huggingface_and_wandb(env: dict[str, str]) -> None:
 
     import wandb
 
-    wandb.login(key=env["WANDB_API_KEY"], force=True)
+    # Modern W&B uses short-lived API keys (e.g. wandb_v1_...).
+    # Preserve loading from the environment file but rely on the
+    # runtime environment variable for the login call so wandb can
+    # handle the newer formats automatically.
+    if env.get("WANDB_API_KEY"):
+        os.environ["WANDB_API_KEY"] = env["WANDB_API_KEY"]
+
+    # Call plain login() so wandb uses the environment or interactive
+    # auth flow as appropriate for the installed client version.
+    wandb.login()
     LOGGER.info("Initialized Weights & Biases.")
 
 
