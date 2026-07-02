@@ -219,7 +219,6 @@ def build_training_arguments(train_config: dict[str, Any]) -> Any:
         per_device_train_batch_size=int(train_config["per_device_train_batch_size"]),
         per_device_eval_batch_size=int(train_config["per_device_eval_batch_size"]),
         gradient_accumulation_steps=int(train_config["gradient_accumulation_steps"]),
-        max_seq_length=int(train_config["max_seq_length"]),
         warmup_ratio=float(train_config["warmup_ratio"]),
         logging_steps=int(train_config["logging_steps"]),
         save_steps=int(train_config["save_steps"]),
