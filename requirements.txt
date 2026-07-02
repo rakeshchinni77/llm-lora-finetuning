@@ -1,1 +1,41 @@
-# Placeholder requirements file for Phase 1 implementation
+# ============================
+# Core ML Framework
+# ============================
+torch==2.2.2
+transformers==4.40.2
+peft==0.11.1
+accelerate==0.31.0
+bitsandbytes==0.43.1
+trl==0.9.6
+
+# ============================
+# Dataset & Evaluation
+# ============================
+datasets==2.21.0
+evaluate==0.4.3
+
+# ============================
+# Experiment Tracking
+# ============================
+wandb==0.17.6
+
+# ============================
+# API
+# ============================
+fastapi==0.112.2
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+python-dotenv==1.0.1
+
+# ============================
+# Tokenizers
+# ============================
+sentencepiece==0.2.0
+protobuf==5.28.2
+
+# ============================
+# Scientific Computing
+# ============================
+numpy==1.26.4
+pandas==2.2.2
+scikit-learn==1.5.1
