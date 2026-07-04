@@ -182,19 +182,19 @@ def compute_metrics(
     rouge_result = rouge_metric.compute(predictions=predictions, references=references)
     rouge_l = float(rouge_result["rougeL"])
 
-    validation_encodings = tokenizer(
-        validation_dataset["text"],
-        padding=True,
-        truncation=True,
-        return_tensors="pt",
-    )
-    labels = validation_encodings["input_ids"].clone()
+    total_loss = 0.0
     input_device = model.get_input_embeddings().weight.device
     with torch.no_grad():
-        validation_encodings = {key: value.to(input_device) for key, value in validation_encodings.items()}
-        outputs = model(**validation_encodings, labels=labels.to(input_device))
-        loss = outputs.loss
-    perplexity = float(torch.exp(loss).item())
+        for sample in validation_dataset:
+            sample_text = sample["text"]
+            tokenized = tokenizer(sample_text, return_tensors="pt", truncation=True)
+            input_ids = tokenized["input_ids"].to(input_device)
+            attention_mask = tokenized["attention_mask"].to(input_device)
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=input_ids)
+            total_loss += outputs.loss.item()
+
+    average_loss = total_loss / len(validation_dataset)
+    perplexity = float(torch.exp(torch.tensor(average_loss)).item())
 
     LOGGER.info("Metrics computed")
     return {
@@ -230,6 +230,9 @@ def main() -> None:
         env = load_environment()
         generation_config = load_generation_config()
         validation_dataset = load_validation_dataset(DEVELOPMENT_MODE)
+        if DEVELOPMENT_MODE:
+            # Temporary debug slice; revert before the final evaluation.
+            validation_dataset = validation_dataset.select(range(min(20, len(validation_dataset))))
 
         tokenizer = build_tokenizer(env["BASE_MODEL_ID"])
         model = build_model(env["BASE_MODEL_ID"])
