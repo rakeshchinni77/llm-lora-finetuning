@@ -80,12 +80,23 @@ def build_tokenizer(model_id: str) -> Any:
 def build_model(model_id: str) -> Any:
     """Load the base causal language model for inference."""
     from transformers import AutoModelForCausalLM
+    from transformers import BitsAndBytesConfig
     import torch
 
+    offload_dir = ROOT_DIR / "offload"
+    ensure_dir(offload_dir)
+    quantization_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.float16,
+        bnb_4bit_use_double_quant=True,
+    )
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
+        quantization_config=quantization_config,
         device_map="auto",
         torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+        offload_folder=str(offload_dir),
     )
     LOGGER.info("Base model loaded")
     return model
@@ -95,7 +106,13 @@ def load_adapter(model: Any) -> Any:
     """Load the fine-tuned LoRA adapter and merge it for inference."""
     from peft import PeftModel
 
-    peft_model = PeftModel.from_pretrained(model, ADAPTER_PATH)
+    offload_dir = ROOT_DIR / "offload"
+    ensure_dir(offload_dir)
+    peft_model = PeftModel.from_pretrained(
+        model,
+        ADAPTER_PATH,
+        offload_folder=str(offload_dir),
+    )
     merged_model = peft_model.merge_and_unload()
     LOGGER.info("Adapter loaded and merged")
     return merged_model
@@ -131,8 +148,8 @@ def generate_prediction(
 ) -> str:
     """Generate a prediction from the model for a given prompt."""
     inputs = tokenizer(prompt, return_tensors="pt", padding=True)
-    device = next(model.parameters()).device
-    inputs = {key: value.to(device) for key, value in inputs.items()}
+    input_device = model.get_input_embeddings().weight.device
+    inputs = {key: value.to(input_device) for key, value in inputs.items()}
 
     generation_kwargs = {
         "pad_token_id": tokenizer.pad_token_id,
@@ -163,7 +180,7 @@ def compute_metrics(
         references=[[reference] for reference in references],
     )
     rouge_result = rouge_metric.compute(predictions=predictions, references=references)
-    rouge_l = float(rouge_result["rougeL"].mid.fmeasure)
+    rouge_l = float(rouge_result["rougeL"])
 
     validation_encodings = tokenizer(
         validation_dataset["text"],
@@ -172,9 +189,10 @@ def compute_metrics(
         return_tensors="pt",
     )
     labels = validation_encodings["input_ids"].clone()
+    input_device = model.get_input_embeddings().weight.device
     with torch.no_grad():
-        validation_encodings = {key: value.to(model.device) for key, value in validation_encodings.items()}
-        outputs = model(**validation_encodings, labels=labels.to(model.device))
+        validation_encodings = {key: value.to(input_device) for key, value in validation_encodings.items()}
+        outputs = model(**validation_encodings, labels=labels.to(input_device))
         loss = outputs.loss
     perplexity = float(torch.exp(loss).item())
 
