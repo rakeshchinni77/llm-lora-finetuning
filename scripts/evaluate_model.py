@@ -140,6 +140,15 @@ def parse_sample_text(sample_text: str) -> tuple[str, str]:
     return instruction, reference
 
 
+def build_inference_prompt(sample_text: str) -> str:
+    """Remove the reference answer and return a prompt for inference."""
+    if "### Response:" not in sample_text:
+        raise ValueError("Sample text is missing the response marker: ### Response:")
+
+    prefix, _ = sample_text.split("### Response:", 1)
+    return prefix + "### Response:\n"
+
+
 def generate_prediction(
     model: Any,
     tokenizer: Any,
@@ -245,9 +254,15 @@ def main() -> None:
         predictions: list[str] = []
 
         for sample in validation_dataset:
-            prompt = sample["text"]
-            instruction, reference = parse_sample_text(prompt)
-            prediction = generate_prediction(model, tokenizer, prompt, generation_config)
+            sample_text = sample["text"]
+            instruction, reference = parse_sample_text(sample_text)
+            inference_prompt = build_inference_prompt(sample_text)
+            prediction = generate_prediction(
+                model,
+                tokenizer,
+                inference_prompt,
+                generation_config,
+            )
             records.append(
                 {
                     "instruction": instruction,
