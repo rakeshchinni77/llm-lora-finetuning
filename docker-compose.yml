@@ -19,17 +19,27 @@ services:
       context: .
       dockerfile: Dockerfile
     working_dir: /app
-    volumes:
-      - .:/app
+    init: true
+    restart: "no"
     env_file:
       - .env
+    environment:
+      BASE_MODEL_ID: /models/base_model
+      INFERENCE_MODE: mock
     ports:
       - "8000:8000"
-    # Placeholder API command for Phase 7 implementation.
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - type: bind
+        source: ${HOST_BASE_MODEL_PATH:?Set HOST_BASE_MODEL_PATH in .env}
+        target: /models/base_model
+        read_only: true
+      - type: bind
+        source: ${HOST_ADAPTER_PATH:?Set HOST_ADAPTER_PATH in .env}
+        target: /app/models/fine_tuned_adapter
+        read_only: true
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 20s
+      start_period: 5m
