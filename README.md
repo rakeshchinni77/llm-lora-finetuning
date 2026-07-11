@@ -208,7 +208,7 @@ Real Mistral-7B inference requires substantial system memory. Hardware requireme
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repository-url>
+git clone "https://github.com/rakeshchinni77/llm-lora-finetuning"
 cd llm-lora-finetuning
 ```
 
